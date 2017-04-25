@@ -7,20 +7,23 @@ let app = [
   path.join(__dirname, 'src/index.js')
 ]
 
+let sourceMap = 'eval'
+
 let cssLoader = {
   test: /\.scss$/,
-  use: [
-    {
-      loader: 'style-loader'
-
-    },
-    {
-      loader: 'css-loader'
-    },
-    {
-      loader: 'sass-loader'
+  use: [{
+    loader: 'style-loader'
+  }, {
+    loader: 'css-loader',
+    options: {
+      sourceMap: true
     }
-  ]
+  }, {
+    loader: 'sass-loader',
+    options: {
+      sourceMap: true
+    }
+  }]
 }
 
 let vueCss = cssLoader.use
@@ -38,10 +41,15 @@ const plugins = [
   new InjectHTML({
     template: './src/index.html',
     inject: 'body'
+  }),
+  new webpack.SourceMapDevToolPlugin({
+    filename: '[file].map',
+    exclude: ['vendor.js', 'manifest.js']
   })
 ]
 
 if (process.env.NODE_ENV) {
+  sourceMap = 'source-map'
   cssLoader.use = ExtractTextPlugin.extract({
     fallback: 'style-loader',
     use: ['css-loader', 'sass-loader'],
@@ -49,29 +57,23 @@ if (process.env.NODE_ENV) {
   })
 
   vueCss = ExtractTextPlugin.extract({
-    use: ['css-loader', 'sass-loader'],
+    use: [{
+      loader: 'css-loader',
+      options: {
+        sourceMap: true
+      }
+    }, {
+      loader: 'sass-loader',
+      options: {
+        sourceMap: true
+      }
+    }],
     fallback: 'vue-style-loader'
   })
 
-
   plugins.push(
-    new ExtractTextPlugin('assets/css/styles.css'),
-    new webpack.DefinePlugin({
+    new ExtractTextPlugin('assets/css/styles.css')
 
-      PRODUCTION: JSON.stringify(true)
-
-    }),
-    new webpack.optimize.UglifyJsPlugin({
-      beautify: false,
-      mangle: {
-        screw_ie8: true,
-        keep_fnames: true
-      },
-      compress: {
-        screw_ie8: true
-      },
-      comments: false
-    })
   )
 }
 
@@ -91,7 +93,7 @@ let config = {
       'node_modules'
     ]
   },
-  devtool: 'eval',
+  devtool: sourceMap,
   module: {
     rules: [
       {
@@ -104,12 +106,9 @@ let config = {
         }
       },
       {
-        test: /\.jsx?$/,
+        test: /\.js?$/,
         loader: 'babel-loader',
-        exclude: /node_modules/,
-        options: {
-          presets: ['es2015']
-        }
+        exclude: /node_modules/
 
       },
       cssLoader,
